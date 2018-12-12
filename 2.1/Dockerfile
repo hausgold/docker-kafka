@@ -6,7 +6,7 @@ ENV MDNS_HOSTNAME=kafka.local
 
 # Install system packages
 RUN apk add --no-cache \
-  dbus avahi avahi-tools haproxy supervisor bash
+  dbus avahi avahi-tools supervisor bash
 
 # Reconfigure supervisord
 RUN sed \
@@ -20,10 +20,6 @@ RUN chmod +x /usr/local/bin/avahi.sh
 # Copy kafka.sh
 COPY config/kafka.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/kafka.sh
-
-# Configure haproxy
-COPY config/haproxy.conf /etc/haproxy/haproxy.cfg
-COPY config/haproxy/errors /etc/haproxy/errors
 
 # Configure supervisord
 COPY config/supervisor/* /etc/supervisor/conf.d/

@@ -5,7 +5,7 @@
 
 This Docker images provides the [wurstmeister/kafka](https://hub.docker.com/r/wurstmeister/kafka/) image as base
 with the mDNS/ZeroConf stack on top. So you can enjoy [Apache Kafka](https://kafka.apache.org)
-while it is accessible by default as *kafka.local*. (Port 80)
+while it is accessible by default as *kafka.local*. (Port 9092)
 
 - [Requirements](#requirements)
 - [Getting starting](#getting-starting)
