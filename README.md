@@ -1,5 +1,6 @@
 ![mDNS enabled wurstmeister/kafka-docker](https://raw.githubusercontent.com/hausgold/docker-kafka/master/docs/assets/project.png)
 
+[![Continuous Integration](https://github.com/hausgold/docker-kafka/actions/workflows/package.yml/badge.svg?branch=master)](https://github.com/hausgold/docker-kafka/actions/workflows/package.yml)
 [![Source Code](https://img.shields.io/badge/source-on%20github-blue.svg)](https://github.com/hausgold/docker-kafka)
 [![Docker Image](https://img.shields.io/badge/image-on%20docker%20hub-blue.svg)](https://hub.docker.com/r/hausgold/kafka/)
 
