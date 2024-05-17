@@ -1,8 +1,11 @@
-FROM wurstmeister/kafka:2.12-2.1.0
+FROM apache/kafka:3.7.0
 MAINTAINER Hermann Mayer "hermann.mayer@hausgold.de"
 
 # You can change this environment variable on run's with -e
 ENV MDNS_HOSTNAME=kafka.local
+
+# Switch to the root user
+USER root
 
 # Install system packages
 RUN apk add --no-cache \

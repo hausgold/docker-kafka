@@ -1,12 +1,16 @@
-![mDNS enabled wurstmeister/kafka-docker](https://raw.githubusercontent.com/hausgold/docker-kafka/master/docs/assets/project.png)
+![mDNS enabled Kafka](https://raw.githubusercontent.com/hausgold/docker-kafka/master/docs/assets/project.png)
 
 [![Continuous Integration](https://github.com/hausgold/docker-kafka/actions/workflows/package.yml/badge.svg?branch=master)](https://github.com/hausgold/docker-kafka/actions/workflows/package.yml)
 [![Source Code](https://img.shields.io/badge/source-on%20github-blue.svg)](https://github.com/hausgold/docker-kafka)
 [![Docker Image](https://img.shields.io/badge/image-on%20docker%20hub-blue.svg)](https://hub.docker.com/r/hausgold/kafka/)
 
-This Docker images provides the [wurstmeister/kafka](https://hub.docker.com/r/wurstmeister/kafka/) image as base
-with the mDNS/ZeroConf stack on top. So you can enjoy [Apache Kafka](https://kafka.apache.org)
-while it is accessible by default as *kafka.local*. (Port 9092)
+This Docker images provides the
+[apache/kafka](https://hub.docker.com/r/apache/kafka/) image as base with the
+mDNS/ZeroConf stack on top. (2.x tags used
+[wurstmeister/kafka](https://hub.docker.com/r/wurstmeister/kafka/), which
+required Zookeeper) So you can enjoy [Apache Kafka](https://kafka.apache.org)
+while it is accessible by default as *kafka.local* (Port 9092) as a single-node
+cluster using KRaft without Zookeeper.
 
 - [Requirements](#requirements)
 - [Getting starting](#getting-starting)
@@ -24,13 +28,9 @@ while it is accessible by default as *kafka.local*. (Port 9092)
 
 To get a single broker Apache Kafka service up and running create a
 `docker-compose.yml` and insert the following snippet (based on the [original
-example](https://github.com/wurstmeister/kafka-docker/blob/master/docker-compose-single-broker.yml)):
+example](https://github.com/apache/kafka/blob/trunk/docker/examples/jvm/single-node/plaintext/docker-compose.yml)):
 
 ```yaml
-zookeeper:
-  image: hausgold/zookeeper
-  ports:
-    - "2181"
 kafka:
   image: hausgold/kafka
   environment:
@@ -40,9 +40,6 @@ kafka:
     # The ports are just for you to know when configure your
     # container links, on depended containers
     - "9092"
-  links:
-    # Link to the ZooKeeper instance for advertising
-    - zookeeper
 ```
 
 Afterwards start the service with the following command:
