@@ -31,15 +31,24 @@ To get a single broker Apache Kafka service up and running create a
 example](https://github.com/apache/kafka/blob/trunk/docker/examples/jvm/single-node/plaintext/docker-compose.yml)):
 
 ```yaml
-kafka:
-  image: hausgold/kafka
-  environment:
-    # Mind the .local suffix
-    - MDNS_HOSTNAME=kafka.test.local
-  ports:
-    # The ports are just for you to know when configure your
-    # container links, on depended containers
-    - "9092"
+services:
+  kafka:
+    image: hausgold/kafka
+    environment:
+      MDNS_HOSTNAME: kafka.local
+      # See: http://bit.ly/2UDzgqI for Kafka downscaling
+      KAFKA_HEAP_OPTS: -Xmx256M -Xms32M
+    ulimits:
+      # Due to systemd/pam RLIMIT_NOFILE settings (max int inside the
+      # container), the Java process seams to allocate huge limits which result
+      # in a +unable to allocate file descriptor table - out of memory+ error.
+      # Lowering this value fixes the issue for now.
+      #
+      # See: http://bit.ly/2U62A80
+      # See: http://bit.ly/2T2Izit
+      nofile:
+        soft: 100000
+        hard: 100000
 ```
 
 Afterwards start the service with the following command:
