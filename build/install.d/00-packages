@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# Any non-zero exit code will break
+set -e
+
+apk add --no-cache \
+  dbus avahi avahi-tools supervisor bash kcat

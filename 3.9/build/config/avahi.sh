@@ -29,6 +29,13 @@ if [ -n "${MDNS_HOSTNAME}" ]; then
     -e "s/.*\(enable-dbus=\).*/\1yes/g" \
     -i /etc/avahi/avahi-daemon.conf
 
+  # Make sure the container known its mDNS name, as Alpine Linux, based on musl
+  # libc, does not support libnss-mdns to resolve hostnames. So we have to make
+  # sure it knowns itself for bootstrapping further utility invokations work as
+  # expected.
+  sed "/localhost/ s/$/ ${MDNS_HOSTNAME}/" /etc/hosts > /tmp/hosts
+  cat /tmp/hosts > /etc/hosts && rm -rf /tmp/hosts
+
   echo "Configured mDNS hostname to ${MDNS_HOSTNAME}"
 fi
 
@@ -42,6 +49,13 @@ if [ -n "${MDNS_CNAMES}" ]; then
     # Construct the command
     COMMAND='/usr/bin/avahi-publish -f -a -R'
     COMMAND+=" \"${CNAME}\" \`hostname -i\`"
+
+    # Make sure the container known its mDNS name, as Alpine Linux, based on
+    # musl libc, does not support libnss-mdns to resolve hostnames. So we have
+    # to make sure it knowns itself for bootstrapping further utility
+    # invokations work as expected.
+    sed "/localhost/ s/$/ ${CNAME}/" /etc/hosts > /tmp/hosts
+    cat /tmp/hosts > /etc/hosts && rm -rf /tmp/hosts
 
     # Write a new supervisord unit file
     cat > "/etc/supervisor/conf.d/${CNAME}.conf" <<EOF

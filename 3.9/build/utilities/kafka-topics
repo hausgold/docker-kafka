@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+if [ "${1}" = '-h' -o "${1}" = '--help' ]; then
+  echo "Usage: ${0} [FLAGS] [ADDITIONAL_ARGS]"
+  echo
+  echo 'List all topics/metadata of the Apache Kafka cluster.'
+  echo 'All additional args are passed through to kcat, see `$ kcat --help`.'
+  exit
+fi
+
+kcat -L ${@}

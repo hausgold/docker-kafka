@@ -7,21 +7,10 @@ ENV MDNS_HOSTNAME=kafka.local
 # Switch to the root user
 USER root
 
-# Install system packages
-RUN apk add --no-cache \
-  dbus avahi avahi-tools supervisor bash
-
-# Reconfigure supervisord
-RUN sed \
-  -e 's#^\(files =\).*#\1 /etc/supervisor/conf.d/*.conf#g' \
-  -i /etc/supervisord.conf
-
-# Copy custom scripts
-COPY config/*.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/*
-
-# Configure supervisord
-COPY config/supervisor/* /etc/supervisor/conf.d/
+# Build stage 1 - installation of the mDNS stack, utilites, etc
+RUN \
+  --mount=type=bind,readwrite,source=build,target=/build \
+  /build/run install
 
 # Define the command to run per default
 CMD ["/usr/bin/supervisord", "-nc", "/etc/supervisord.conf"]

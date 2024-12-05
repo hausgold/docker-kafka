@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#
+# Install our custom scripts and supervisord units
+
+# Any non-zero exit code will break
+set -e
+
+# Reconfigure supervisord
+sed \
+  -e 's#^\(files =\).*#\1 /etc/supervisor/conf.d/*.conf#g' \
+  -i /etc/supervisord.conf
+
+# Copy all supervisord units over
+mkdir -p /etc/supervisor/conf.d/
+cp /build/config/supervisor/* \
+  /etc/supervisor/conf.d/
+
+# Copy all custom supervisord unit scripts over
+cp /build/config/*.sh \
+  /usr/local/bin/
+chmod +x /usr/local/bin/*
+
+# Copy over the kcat configuration
+mkdir -p /root/.config
+cp /build/config/kcat.conf \
+  /root/.config/kcat.conf
