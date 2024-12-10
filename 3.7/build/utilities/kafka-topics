@@ -5,7 +5,17 @@ if [ "${1}" = '-h' -o "${1}" = '--help' ]; then
   echo
   echo 'List all topics/metadata of the Apache Kafka cluster.'
   echo 'All additional args are passed through to kcat, see `$ kcat --help`.'
+  echo
+  echo 'Extra flags:'
+  echo
+  echo '  --names, -n    Only list topic names'
   exit
+fi
+
+if [ "${1}" = '--names' -o "${1}" = '-n' ]; then
+  shift
+  kcat -L ${@} | grep -oP 'topic "\K[^"]+' | LC_COLLATE=C sort
+  exit $?
 fi
 
 kcat -L ${@}
