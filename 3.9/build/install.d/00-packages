@@ -4,4 +4,4 @@
 set -e
 
 apk add --no-cache \
-  dbus avahi avahi-tools supervisor bash kcat
+  dbus avahi avahi-tools supervisor bash kcat grep
