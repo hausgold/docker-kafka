@@ -10,7 +10,7 @@ SHELL := bash
 REGISTRY ?=
 CANONICAL_NAME ?= kafka
 IMAGE_NAME ?= hausgold/$(CANONICAL_NAME)
-IMAGE_REF ?= 3.7
+IMAGE_REF ?= 4.0
 IMAGE_URI := $(IMAGE_NAME):$(IMAGE_REF)
 
 # Host binaries

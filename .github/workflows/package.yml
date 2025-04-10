@@ -20,8 +20,8 @@ jobs:
       matrix:
         version:
           - latest
+          - '4.0'
           - '3.9'
-          - '3.7'
     steps:
       - name: Prepare the virtual environment
         uses: hausgold/actions/ci@master
