@@ -31,7 +31,7 @@ if [ -n "${MDNS_HOSTNAME}" ]; then
 
   # Make sure the container known its mDNS name, as Alpine Linux, based on musl
   # libc, does not support libnss-mdns to resolve hostnames. So we have to make
-  # sure it knowns itself for bootstrapping further utility invokations work as
+  # sure it knowns itself for bootstrapping further utility invocations work as
   # expected.
   sed "/localhost/ s/$/ ${MDNS_HOSTNAME}/" /etc/hosts > /tmp/hosts
   cat /tmp/hosts > /etc/hosts && rm -rf /tmp/hosts
@@ -53,7 +53,7 @@ if [ -n "${MDNS_CNAMES}" ]; then
     # Make sure the container known its mDNS name, as Alpine Linux, based on
     # musl libc, does not support libnss-mdns to resolve hostnames. So we have
     # to make sure it knowns itself for bootstrapping further utility
-    # invokations work as expected.
+    # invocations work as expected.
     sed "/localhost/ s/$/ ${CNAME}/" /etc/hosts > /tmp/hosts
     cat /tmp/hosts > /etc/hosts && rm -rf /tmp/hosts
 
