@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+PROGNAME="$(basename "${0}")"
+
+# Print the usage/help information.
+function help()
+{
+  echo "Usage: ${PROGNAME} TOPIC [KEY=VALUE, ..]"
+  echo
+  echo 'Show the Apache Kafka topic configuration for the given topic.'
+  echo 'When key/value pair(s) are given, update the configuration accordingly.'
+  echo
+  echo 'See: https://kafka.apache.org/documentation/#topicconfigs'
+}
+
+if [ -z "${1}" -o "${1}" = '-h' -o "${1}" = '--help' ]; then
+  help
+  exit
+else
+  TOPIC="${1}"
+  shift
+fi
+
+BOOTSTRAP_SERVER='localhost:9092'
+
+function show-config()
+{
+  /opt/kafka/bin/kafka-configs.sh \
+    --bootstrap-server "${BOOTSTRAP_SERVER}" \
+    --describe \
+    --all \
+    --topic "${TOPIC}"
+}
+
+# When there are no other arguments, we just show the configuration
+if [ -z "${1}" ]; then
+  show-config
+  exit $?
+fi
+
+# We have more arguments so use them for an update
+/opt/kafka/bin/kafka-configs.sh \
+  --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --alter \
+  --entity-type topics \
+  --entity-name "${TOPIC}" \
+  --add-config ${@}

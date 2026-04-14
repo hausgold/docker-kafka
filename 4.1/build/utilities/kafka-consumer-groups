@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+PROGNAME="$(basename "${0}")"
+
+# Print the usage/help information.
+function help()
+{
+  echo "Usage: ${PROGNAME} [FLAG]"
+  echo
+  echo 'List all consumer groups by name and details.'
+  echo
+  echo 'Flags:'
+  echo
+  echo '  --list, -l     Only list the consumer group names'
+  echo
+  echo 'See: https://kafka.apache.org/documentation/#topicconfigs'
+}
+
+if [ "${1}" = '-h' -o "${1}" = '--help' ]; then
+  help
+  exit
+fi
+
+export BOOTSTRAP_SERVER='localhost:9092'
+
+function list-consumer-groups()
+{
+  /opt/kafka/bin/kafka-consumer-groups.sh \
+    --bootstrap-server "${BOOTSTRAP_SERVER}" \
+    --list \
+    --all-groups \
+  | sort
+}
+export -f list-consumer-groups
+
+function describe-consumer-groups()
+{
+  /opt/kafka/bin/kafka-consumer-groups.sh \
+    --bootstrap-server "${BOOTSTRAP_SERVER}" \
+    --describe \
+    --all-groups
+}
+export -f describe-consumer-groups
+
+if [ "${1}" = '--list' -o "${1}" = '-l' ]; then
+  list-consumer-groups
+  exit $?
+fi
+
+describe-consumer-groups \
+  | sed 's/\s\+/|/g' \
+  | column -ts '|' -o ' | '
