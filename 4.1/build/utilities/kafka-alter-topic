@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+PROGNAME="$(basename "${0}")"
+
+# Print the usage/help information.
+function help()
+{
+  echo "Usage: ${PROGNAME} TOPIC [ARGS]"
+  echo
+  echo 'Alter an existing Apache Kafka topic by the given name.'
+  echo
+  echo 'See: https://kafka.apache.org/documentation/#basic_ops_modify_topic'
+  echo
+  echo 'Example:'
+  echo
+  echo "  \$ ${PROGNAME} my-topic --partitions 20"
+}
+
+if [ -z "${1}" -o "${1}" = '-h' -o "${1}" = '--help' ]; then
+  help
+  exit
+else
+  TOPIC="${1}"
+  shift
+fi
+
+BOOTSTRAP_SERVER='localhost:9092'
+
+/opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server "${BOOTSTRAP_SERVER}" \
+  --alter \
+  --topic "${TOPIC}" \
+  ${@}

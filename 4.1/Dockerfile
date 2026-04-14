@@ -1,4 +1,4 @@
-FROM apache/kafka:3.9.2
+FROM apache/kafka:4.1.2
 LABEL org.opencontainers.image.authors="containers@hausgold.de"
 
 # You can change this environment variable on run's with -e
