@@ -21,9 +21,6 @@ jobs:
         version:
           - latest
           - '4.2'
-          - '4.1'
-          - '4.0'
-          - '3.9'
     steps:
       - name: Prepare the environment
         uses: hausgold/actions/ci@v2

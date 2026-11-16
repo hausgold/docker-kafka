@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-await-http-response 'http://localhost:8083' 'version'
