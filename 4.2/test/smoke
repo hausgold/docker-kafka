@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+PROGNAME="$(basename "${0}")"
+
+# Print the usage of the script.
+function help()
+{
+  cat <<EOF
+Usage: ${PROGNAME} IMAGE [NAME]
+
+Run the smoke test on a built Docker image. The image is started with
+its default configuration, next to a second container of the same image
+which acts as the client. The client looks the broker up via mDNS,
+connects to it by its mDNS hostname and sends a message through a
+topic. NAME prefixes the containers and names the network of the test
+run, it defaults to kafka-test.
+
+Eg. ${0} hausgold/kafka:latest
+EOF
+}
+
+if [ -z "${1:-}" -o "${1:-}" = '-h' -o "${1:-}" = '--help' ]; then
+  help
+  exit 0
+fi
+
+# Print an error message and the usage to stderr, then exit.
+#
+# $1 - the error message
+function panic()
+{
+  >&2 echo "${PROGNAME}: ${1}"
+  >&2 echo -e '\n---\n'
+  >&2 help
+  exit 1
+}
+
+command -v docker >/dev/null || panic 'docker: command not found'
+
+# The Docker image to test
+IMAGE="${1}"
+# The name prefix of the containers, and the name of the network
+NAME="${2:-kafka-test}"
+# The container which runs the default configuration
+SERVER="${NAME}-server"
+# The container which looks up and connects to the broker
+CLIENT="${NAME}-client"
+# We use a dedicated network, so that containers of other projects cannot
+# claim the mDNS hostname of the broker on the default bridge
+NETWORK="${NAME}"
+# The default of the image, as documented on the readme
+MDNS_HOSTNAME='kafka.local'
+# The port of the listener for clients
+PORT=9092
+# The listener which the broker advertises to its clients by default
+BROKER="${MDNS_HOSTNAME}:${PORT}"
+# The topic which is created for the test message
+TOPIC='smoke'
+# The message which is sent through the topic
+MESSAGE='Smoke test'
+# The seconds we wait for the broker startup, and for the mDNS lookup
+TIMEOUT=120
+
+# Remove the containers and the network of the test run.
+function cleanup()
+{
+  docker rm --force --volumes "${SERVER}" "${CLIENT}" >/dev/null 2>&1 || true
+  docker network rm "${NETWORK}" >/dev/null 2>&1 || true
+}
+
+# Print the failed check together with the latest broker logs to stderr,
+# then exit.
+#
+# $1 - the description of the failed check
+function fail()
+{
+  >&2 echo "${PROGNAME}: ${1}"
+  >&2 echo -e '\n---\n'
+  >&2 docker logs --tail 50 "${SERVER}" || true
+  exit 1
+}
+
+# Retry a command every second until it succeeds, or the timeout is
+# reached.
+#
+# $1 - the timeout in seconds
+# $@ - the command to run
+function wait-for()
+{
+  local deadline=$((SECONDS + ${1}))
+  shift
+
+  until "${@}" >/dev/null 2>&1; do
+    [ "${SECONDS}" -lt "${deadline}" ] || return 1
+    sleep 1
+  done
+}
+
+# Check whether the broker accepts connections on its client port, which
+# it opens at the very end of its startup. We do not ask for metadata
+# here, because kcat has to reach the advertised listener for it, and a
+# wrong one would look like a broker which never comes up.
+function server-ready()
+{
+  docker exec "${SERVER}" bash -c ": < /dev/tcp/127.0.0.1/${PORT}"
+}
+
+# Print the listener which the broker advertises to its clients, as seen
+# from within the broker container. This also covers the kcat defaults
+# which the image ships.
+function advertised-listener()
+{
+  docker exec "${SERVER}" kcat -L \
+    | grep -o 'broker 1 at [^ ]*'
+}
+
+# Run kcat on the client against the mDNS hostname of the broker. We
+# limit the runtime, because kcat retries an unreachable broker forever.
+#
+# $@ - the kcat arguments
+function client-kcat()
+{
+  docker exec -i "${CLIENT}" timeout 30 kcat -b "${BROKER}" "${@}"
+}
+
+# Check whether the client resolves the mDNS hostname to the address of
+# the broker. We ask avahi directly, so no other name service can answer.
+function mdns-resolves()
+{
+  local address
+  address="$(
+    docker exec "${CLIENT}" avahi-resolve-host-name -4 "${MDNS_HOSTNAME}" \
+      | cut -f2
+  )"
+  [ "${address}" = "${SERVER_ADDRESS}" ]
+}
+
+# Drop the leftovers of an aborted run, and clean up after this one
+cleanup
+trap cleanup EXIT
+
+echo "Start ${IMAGE} with the default configuration"
+docker network create "${NETWORK}" >/dev/null
+docker run --detach --name "${SERVER}" --network "${NETWORK}" \
+  "${IMAGE}" >/dev/null
+wait-for "${TIMEOUT}" server-ready \
+  || fail 'The broker did not open its client port'
+# Clients are sent to the advertised listener after their first request,
+# so it has to be reachable and to carry the mDNS hostname
+wait-for 30 advertised-listener \
+  || fail 'The broker did not answer on its advertised listener'
+ADVERTISED="$(advertised-listener || true)"
+[ "${ADVERTISED}" = "broker 1 at ${BROKER}" ] \
+  || fail "The broker does not advertise ${BROKER}: ${ADVERTISED}"
+
+echo "Look up ${MDNS_HOSTNAME} via mDNS"
+# The client needs its own mDNS hostname, otherwise both containers
+# would claim the default one. Its own broker is of no use for the test,
+# so we keep the memory footprint of it low.
+docker run --detach --name "${CLIENT}" --network "${NETWORK}" \
+  --env MDNS_HOSTNAME="${CLIENT}.local" \
+  --env KAFKA_HEAP_OPTS='-Xmx256M -Xms32M' "${IMAGE}" >/dev/null
+SERVER_ADDRESS="$(docker inspect "${SERVER}" \
+  --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')"
+wait-for "${TIMEOUT}" mdns-resolves \
+  || fail "${MDNS_HOSTNAME} did not resolve to ${SERVER_ADDRESS}"
+
+# The image ships no mDNS name service, so a client within a container
+# cannot resolve the hostname by itself. A Kafka client has to, as the
+# broker advertises itself by name. That is why we hand the address which
+# the mDNS lookup returned to the hosts file of the client.
+docker exec "${CLIENT}" \
+  sh -c "echo '${SERVER_ADDRESS} ${MDNS_HOSTNAME}' >> /etc/hosts"
+
+echo 'Create a topic'
+docker exec "${SERVER}" kafka-create-topic "${TOPIC}" >/dev/null \
+  || fail 'The topic could not be created'
+
+echo "Connect to ${BROKER}"
+TOPICS="$(client-kcat -L)" \
+  || fail "The client could not connect to ${BROKER}"
+# The exit code of the utility alone proves nothing about the topic
+grep -q "topic \"${TOPIC}\"" <<< "${TOPICS}" \
+  || fail "The broker does not list the topic: ${TOPICS}"
+
+echo 'Send a message through the topic'
+client-kcat -P -t "${TOPIC}" -X message.timeout.ms=10000 \
+  <<< "${MESSAGE}" \
+  || fail 'The client could not produce the message'
+RECEIVED="$(client-kcat -C -t "${TOPIC}" -o beginning -e -q)" \
+  || fail 'The client could not consume from the topic'
+[ "${RECEIVED}" = "${MESSAGE}" ] \
+  || fail "The client consumed an unexpected message: ${RECEIVED}"
+
+echo 'All checks passed'
